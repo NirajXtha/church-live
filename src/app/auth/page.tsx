@@ -6,6 +6,7 @@ import { getSupabase } from "@/lib/supabase";
 export default function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -17,15 +18,30 @@ export default function AuthPage() {
     setSuccessMsg("");
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { preferred_username: username } },
+      });
       if (error) alert(error.message);
       else {
-        setSuccessMsg("Account created! You can now sign in.");
-        setMode("signin");
+        await supabase.from("profiles").update({ email } as any).eq("id", (await supabase.auth.getUser()).data.user?.id);
+        window.location.href = "/dashboard";
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const isEmail = email.includes("@");
+      let loginEmail = email;
+      if (!isEmail) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("username", email)
+          .single();
+        if (profile?.email) loginEmail = profile.email;
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
       if (error) alert(error.message);
+      else window.location.href = "/dashboard";
     }
 
     setLoading(false);
@@ -63,7 +79,12 @@ export default function AuthPage() {
         </div>
 
         <form onSubmit={handleEmailAuth} className="space-y-4">
-          <input type="email" placeholder="Email" value={email}
+          {mode === "signup" && (
+            <input type="text" placeholder="Username" value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full rounded-lg border bg-transparent px-4 py-2 text-sm" required />
+          )}
+          <input type="text" placeholder={mode === "signin" ? "Email or username" : "Email"} value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border bg-transparent px-4 py-2 text-sm" required />
           <input type="password" placeholder="Password" value={password}

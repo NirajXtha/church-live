@@ -9,6 +9,7 @@ create extension if not exists "pgcrypto";
 create table profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   username    text unique not null,
+  email       text,
   display_name text,
   avatar_url  text,
   bio         text,
@@ -248,14 +249,15 @@ returns trigger
 language plpgsql security definer
 as $$
 begin
-  insert into public.profiles (id, username)
+  insert into public.profiles (id, username, email)
   values (
     new.id,
     coalesce(
       new.raw_user_meta_data ->> 'preferred_username',
       new.raw_user_meta_data ->> 'user_name',
       split_part(new.email, '@', 1)
-    )
+    ),
+    new.email
   );
   return new;
 end;
