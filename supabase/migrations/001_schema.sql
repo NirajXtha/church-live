@@ -19,6 +19,17 @@ create table profiles (
 
 alter table profiles enable row level security;
 
+-- 2. HELPER FUNCTION (must exist before any policy references it)
+create or replace function is_admin()
+returns boolean
+language sql stable security definer
+as $$
+  select exists (
+    select 1 from profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
 create policy "profiles_select" on profiles
   for select using (true);
 
@@ -28,7 +39,7 @@ create policy "profiles_insert" on profiles
 create policy "profiles_update" on profiles
   for update using (auth.uid() = id or is_admin());
 
--- 2. STREAM KEYS
+-- 3. STREAM KEYS
 create table stream_keys (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references profiles(id) on delete cascade,
@@ -55,7 +66,7 @@ create policy "sk_update" on stream_keys
 create policy "sk_delete" on stream_keys
   for delete using (auth.uid() = user_id or is_admin());
 
--- 3. STREAMS
+-- 4. STREAMS
 create table streams (
   id                uuid primary key default gen_random_uuid(),
   user_id           uuid not null references profiles(id) on delete cascade,
@@ -91,7 +102,7 @@ create policy "streams_update" on streams
 create policy "streams_delete" on streams
   for delete using (auth.uid() = user_id or is_admin());
 
--- 4. CHAT MESSAGES
+-- 5. CHAT MESSAGES
 create table chat_messages (
   id          bigint primary key generated always as identity,
   stream_id   uuid not null references streams(id) on delete cascade,
@@ -140,7 +151,7 @@ create policy "chat_update" on chat_messages
     or is_admin()
   );
 
--- 5. BANS
+-- 6. BANS
 create table bans (
   id            uuid primary key default gen_random_uuid(),
   stream_id     uuid references streams(id) on delete cascade,
@@ -176,7 +187,7 @@ create policy "bans_delete" on bans
     or is_admin()
   );
 
--- 6. MUTES
+-- 7. MUTES
 create table mutes (
   id           uuid primary key default gen_random_uuid(),
   stream_id    uuid references streams(id) on delete cascade,
@@ -204,7 +215,7 @@ create policy "mutes_insert" on mutes
     or is_admin()
   );
 
--- 7. REPORTS
+-- 8. REPORTS
 create table reports (
   id                uuid primary key default gen_random_uuid(),
   reporter_id       uuid not null references profiles(id),
@@ -230,17 +241,6 @@ create policy "reports_insert" on reports
 
 create policy "reports_update" on reports
   for update using (is_admin());
-
--- 8. HELPER FUNCTIONS
-create or replace function is_admin()
-returns boolean
-language sql stable security definer
-as $$
-  select exists (
-    select 1 from profiles
-    where id = auth.uid() and role = 'admin'
-  );
-$$;
 
 -- 9. TRIGGER: auto-create profile on user signup
 create or replace function handle_new_user()
