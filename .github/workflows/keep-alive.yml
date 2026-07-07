@@ -1,0 +1,13 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping app to prevent Supabase pause
+        run: curl -fsS "${{ secrets.APP_URL }}/api/ping" > /dev/null 2>&1 || true

@@ -1,0 +1,12 @@
+export const RECORDING_RETENTION_DAYS = 15;
+export const MAX_CHAT_MESSAGE_LENGTH = 500;
+export const CHAT_RATE_LIMIT_MS = 1000;
+export const MAX_STREAM_DURATION_HOURS = 12;
+export const DEFAULT_LATENCY_MODE = "low";
+export const STORAGE_BUCKET_HLS = "hls";
+export const STORAGE_BUCKET_RECORDINGS = "recordings";
+export const ADMIN_EMAIL = "admin@church.com";
+export const ADMIN_USERNAME = "admin";
+export const ADMIN_PASSWORD = "admin@12345";
+export const LOW_LATENCY_LABEL = "Low Latency (~500ms)";
+export const NORMAL_LATENCY_LABEL = "Normal (DVR)";
